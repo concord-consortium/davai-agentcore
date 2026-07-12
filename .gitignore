@@ -41,3 +41,7 @@ npm-debug.log*
 
 # done-loop run outputs
 done-loop/latency/results-*.json
+
+done-loop/harness/node_modules/
+done-loop/harness/test-results/
+done-loop/harness/playwright-report/
