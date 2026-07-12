@@ -38,7 +38,9 @@ davai-agentcore/
       `updateState`) — `npm run test:ws` PASS. Client `ws-transport.ts` (session-id≥33, socket reuse, tool
       round-trip, idle re-seed) — **8 unit tests PASS**. _Remaining: wire the transport into the client's
       `handleMessageSubmit` (small, default-off flag); best verified with a provider key + the harness._
-- [ ] **P4 — Deploy + prove:** deploy to dev; run done-loop; hit the latency bar.
+- [~] **P4 — Deploy + prove:** IaC groundwork authored — `infra/policies/` least-privilege IAM (execution
+      trust+permissions **without `bedrock:InvokeModel`**, deploy-caller) all valid JSON; deploy runbook.
+      _Deploy + done-loop run pend AWS creds + `aws`/`agentcore` CLI install._
 - [ ] **P5 — Report + reconcile** plan back to `davai-plugin`.
 
 ## Provenance
