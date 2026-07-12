@@ -29,8 +29,9 @@ davai-agentcore/
 
 - [x] **P0 — Scaffold:** repo + charter + research briefs; client forked; old backend + Playwright harness lifted.
       _Open item: AWS CLI / `gh` / AgentCore toolkit + dev-account credentials are **not yet installed/available** on this machine — see `docs/design.md` § Access._
-- [~] **P1 — Baseline:** interaction suite **drafted** for review (`done-loop/suite/`, 12 interactions,
-      modify+describe). _Baseline latency measurement pends AWS creds + the deployed old stack + a provider key._
+- [~] **P1 — Baseline:** interaction suite drafted (`done-loop/suite/`, 12 interactions). **Latency runner
+      built** (`done-loop/latency/run.mjs`, drivers `ws`/`invocations`/`sam-poll`) + **new-stack WS preview run**
+      with real OpenAI. _Old-vs-new comparison pends the deployed `sam-server` baseline URL + token._
 - [x] **P2 — Backend container:** LangGraph-JS agent re-hosted (only checkpointer swapped: Postgres→in-VM
       `MemorySaver`); `/invocations`+`/ping`; ARM64 image (325 MB). **Live parity proven with real OpenAI:**
       plain turn, **multi-turn in-VM memory** (turn 2 recalled turn 1 with no Postgres), and the **tool-calling

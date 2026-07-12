@@ -38,3 +38,6 @@ cdk.out/
 # Logs
 *.log
 npm-debug.log*
+
+# done-loop run outputs
+done-loop/latency/results-*.json

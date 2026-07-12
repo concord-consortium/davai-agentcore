@@ -8,9 +8,12 @@ Proves the two headline completion metrics (see [`../docs/GOAL.md`](../docs/GOAL
   dev server + self-signed certs, `frameLocator(".codap-web-view-iframe")`). Adapt `harness/playwright/
   in-codap.spec.ts` to the forked DAVAI client.
 - `suite/` _(P1)_ — the fixed **interaction suite**: ~8–12 interactions, tagged `modify` or `describe`.
-- `latency/` _(P1)_ — runner that executes each interaction ≥20× against old (deployed, polling) and new
-  (AgentCore, WS) stacks, using the client's `performance.now()` hooks; reports mean/p50/p95 +
-  removed-component breakdown.
+- `latency/run.mjs` — **built.** Executes each interaction N× against a backend, timing the whole logical
+  interaction (message + any tool round-trips → final), and reports mean/p50/p95 overall + tool-calling.
+  Three drivers: `ws` (new WS), `invocations` (new HTTP), **`sam-poll`** (the OLD sam-server baseline:
+  POST /message + poll /status). Node 22+ globals only, no deps. New-stack WS preview run against a local
+  backend with real OpenAI. Old-vs-new comparison needs the deployed baseline URL + token:
+  `node run.mjs --transport sam-poll --url https://<api-gw>/ --auth <token> --runs 20`.
 - `judge/` _(P1)_ — LLM-judge for `describe` semantic-equivalence scoring vs the old backend.
 
 ## Rubric (tiered)
