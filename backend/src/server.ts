@@ -45,11 +45,20 @@ async function processOldJob(messageId: string, input: any) {
   }
 }
 
+// CORS: the browser client is a cross-origin caller (served from a different origin
+// than the backend). The old API Gateway used `*`; mirror that here.
+const CORS_HEADERS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-headers": "authorization, content-type",
+};
+
 function send(res: http.ServerResponse, status: number, body: unknown) {
   const json = JSON.stringify(body);
   res.writeHead(status, {
     "content-type": "application/json",
     "content-length": Buffer.byteLength(json),
+    ...CORS_HEADERS,
   });
   res.end(json);
 }
@@ -89,6 +98,12 @@ function authorized(req: http.IncomingMessage): boolean {
 
 const server = http.createServer(async (req, res) => {
   try {
+    // CORS preflight
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, CORS_HEADERS);
+      return res.end();
+    }
+
     if (req.method === "GET" && (req.url === "/ping" || req.url?.startsWith("/ping?"))) {
       return send(res, 200, { status: "Healthy" });
     }

@@ -15,6 +15,10 @@
   "effort": "",
   "llmList": [
     {
+      "id": "gpt-4o-mini",
+      "provider": "OpenAI"
+    },
+    {
       "id": "mock",
       "provider": "Mock",
       "effortLevels": []
@@ -37,19 +41,37 @@
     {
       "id": "gpt-5.5",
       "provider": "OpenAI",
-      "effortLevels": ["none", "low", "medium", "high", "xhigh"],
+      "effortLevels": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
       "defaultEffort": "medium"
     },
     {
       "id": "gpt-5.4-mini",
       "provider": "OpenAI",
-      "effortLevels": ["none", "low", "medium", "high", "xhigh"],
+      "effortLevels": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
       "defaultEffort": "none"
     },
     {
       "id": "gpt-5.4-nano",
       "provider": "OpenAI",
-      "effortLevels": ["none", "low", "medium", "high", "xhigh"],
+      "effortLevels": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ],
       "defaultEffort": "none"
     },
     {
@@ -60,13 +82,25 @@
     {
       "id": "claude-sonnet-5",
       "provider": "Anthropic",
-      "effortLevels": ["low", "medium", "high", "xhigh", "max"],
+      "effortLevels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
       "defaultEffort": "high"
     },
     {
       "id": "claude-opus-4-8",
       "provider": "Anthropic",
-      "effortLevels": ["low", "medium", "high", "xhigh", "max"],
+      "effortLevels": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ],
       "defaultEffort": "high"
     }
   ],
