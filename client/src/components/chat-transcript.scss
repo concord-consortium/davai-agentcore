@@ -1,0 +1,154 @@
+@use "vars" as *;
+
+.chat-transcript__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 5px;
+
+  button.capture-transcript {
+    font-size: .75rem;
+    cursor: pointer;
+  }
+}
+
+.chat-transcript {
+  margin: 0;
+  max-height: 250px;
+  overflow-y: auto;
+
+  .chat-transcript__messages {
+    background: white;
+    color: $dark-gray;
+    list-style: none;
+    margin: 0;
+    max-height: 450px;
+    padding: 0;
+    text-align: left;
+
+    .chat-transcript__message {
+      margin: 0;
+      padding: 8px 10px;
+
+      &.davai {
+        background: $light-teal-4;
+      }
+
+      &.debug {
+        background: lightyellow;
+      }
+
+      h3, li, p {
+        font-size: .75rem;
+        line-height: 17px;
+        margin: 0;
+        padding: 0;
+      }
+      p {
+        margin: 0 0 10px;
+      }
+      pre {
+        font-size: .75rem;
+      }
+      // GFM tables (remark-gfm): match the surrounding message font size, not the
+      // browser default which renders noticeably larger.
+      table {
+        font-size: .75rem;
+        line-height: 17px;
+        border-collapse: collapse;
+        margin: 0 0 10px;
+      }
+      th, td {
+        font-size: .75rem;
+        border: 1px solid $light-teal-1;
+        padding: 2px 6px;
+        text-align: left;
+      }
+      .chat-message-content {
+        &.user {
+          white-space: pre-line; // maintain line breaks
+        }
+        &.davai {
+          pre {
+            white-space: normal;
+          }
+        }
+        &.debug {
+          .debug-message-wrapper {
+            display: flex;
+            padding: 5px;
+            align-items: center;
+            gap: 10px;
+            word-break: none;
+            white-space: nowrap;
+
+            &.expanded{
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 0;
+              pre {
+                white-space: pre-wrap;
+                word-break: break-word;
+              }
+            }
+
+            &.collapsed{
+              button {
+                .arrow-icon {
+                  transform: rotate(-90deg);
+                }
+              }
+              pre {
+                word-break: none;
+                overflow: hidden;
+                white-space: nowrap;
+                margin: 0;
+              }
+            }
+
+            button {
+              font-family: $font-family;
+              font-size: .75rem;
+              font-weight: bold;
+              background-color: transparent;
+              border: 0;
+              height: auto;
+              padding: 0;
+              margin: 0;
+              cursor: pointer;
+              .arrow-icon {
+                display: inline-block;
+                font-size: .7rem;
+                margin-right: 5px;
+              }
+            }
+          }
+        }
+        .loading {
+          font-size: .75rem;
+        }
+        .loading:after {
+          overflow: hidden;
+          display: inline-block;
+          vertical-align: bottom;
+          -webkit-animation: ellipsis steps(4, end) 900ms infinite;
+          animation: ellipsis steps(4, end) 900ms infinite;
+          /* ascii code for the ellipsis character */
+          content: "\2026";
+          width: 0;
+        }
+
+        @keyframes ellipsis {
+          to {
+            width: 15px;
+          }
+        }
+
+        @-webkit-keyframes ellipsis {
+          to {
+            width: 15px;
+          }
+        }
+      }
+    }
+  }
+}

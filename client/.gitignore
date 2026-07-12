@@ -1,0 +1,22 @@
+# dependencies
+/node_modules
+
+# testing
+/coverage
+
+# production
+/build
+/dist
+/server/deploy
+/server/dist
+lambda.zip
+
+# OS
+.DS_Store
+
+# Logs
+npm-debug.log*
+npm-error.log*
+
+# Environment
+.env

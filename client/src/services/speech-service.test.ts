@@ -1,0 +1,404 @@
+import { SpeechService } from "./speech-service";
+import { setupMockSpeechSynthesis, cleanupMockSpeechSynthesis, MockSpeechSynthesis } from "../test-utils/mock-speech-synthesis";
+
+describe("SpeechService", () => {
+  let mockSpeechSynthesis: MockSpeechSynthesis;
+  let service: SpeechService;
+
+  beforeEach(() => {
+    mockSpeechSynthesis = setupMockSpeechSynthesis();
+  });
+
+  afterEach(() => {
+    service?.dispose();
+    cleanupMockSpeechSynthesis();
+  });
+
+  describe("speak", () => {
+    it("does not speak when readAloudEnabled is false", () => {
+      service = new SpeechService(() => false, () => 1);
+      service.speak("Hello world");
+      expect(mockSpeechSynthesis.speak).not.toHaveBeenCalled();
+    });
+
+    it("speaks when readAloudEnabled is true", () => {
+      service = new SpeechService(() => true, () => 1);
+      service.speak("Hello world");
+      expect(mockSpeechSynthesis.speak).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not speak empty text", () => {
+      service = new SpeechService(() => true, () => 1);
+      service.speak("");
+      expect(mockSpeechSynthesis.speak).not.toHaveBeenCalled();
+    });
+
+    it("does not speak whitespace-only text", () => {
+      service = new SpeechService(() => true, () => 1);
+      service.speak("   ");
+      expect(mockSpeechSynthesis.speak).not.toHaveBeenCalled();
+    });
+
+    it("applies playback speed to utterance rate", () => {
+      service = new SpeechService(() => true, () => 1.5);
+      service.speak("Hello world");
+      expect(mockSpeechSynthesis.speak).toHaveBeenCalledTimes(1);
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      expect(utterance.rate).toBe(1.5);
+    });
+
+    it("cancels previous speech before speaking new text", () => {
+      service = new SpeechService(() => true, () => 1);
+      service.speak("First message");
+      service.speak("Second message");
+      expect(mockSpeechSynthesis.cancel).toHaveBeenCalled();
+      expect(mockSpeechSynthesis.speak).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("stopSpeech", () => {
+    it("calls speechSynthesis.cancel", () => {
+      service = new SpeechService(() => true, () => 1);
+      service.stopSpeech();
+      expect(mockSpeechSynthesis.cancel).toHaveBeenCalled();
+    });
+
+    it("sets speaking to false", () => {
+      service = new SpeechService(() => true, () => 1);
+      service.speak("Hello");
+      // Simulate onstart callback
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      utterance.onstart?.({} as Event);
+      expect(service.isSpeaking()).toBe(true);
+
+      service.stopSpeech();
+      expect(service.isSpeaking()).toBe(false);
+    });
+  });
+
+  describe("isSpeaking", () => {
+    it("returns false initially", () => {
+      service = new SpeechService(() => true, () => 1);
+      expect(service.isSpeaking()).toBe(false);
+    });
+
+    it("returns true after onstart fires", () => {
+      service = new SpeechService(() => true, () => 1);
+      service.speak("Hello");
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      utterance.onstart?.({} as Event);
+      expect(service.isSpeaking()).toBe(true);
+    });
+
+    it("returns false after onend fires", () => {
+      service = new SpeechService(() => true, () => 1);
+      service.speak("Hello");
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      utterance.onstart?.({} as Event);
+      utterance.onend?.({} as Event);
+      expect(service.isSpeaking()).toBe(false);
+    });
+
+    it("returns false after onerror fires", () => {
+      service = new SpeechService(() => true, () => 1);
+      service.speak("Hello");
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      utterance.onstart?.({} as Event);
+      utterance.onerror?.({} as Event);
+      expect(service.isSpeaking()).toBe(false);
+    });
+  });
+
+  describe("escape key handler", () => {
+    it("stops speech when Escape is pressed and speaking", () => {
+      service = new SpeechService(() => true, () => 1);
+      service.speak("Hello");
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      utterance.onstart?.({} as Event);
+
+      const event = new KeyboardEvent("keydown", { code: "Escape", key: "Escape" });
+      Object.defineProperty(event, "target", { value: document.body });
+      const preventDefaultSpy = jest.spyOn(event, "preventDefault");
+
+      window.dispatchEvent(event);
+
+      expect(preventDefaultSpy).toHaveBeenCalled();
+      expect(mockSpeechSynthesis.cancel).toHaveBeenCalled();
+    });
+
+    it("stops speech when Escape is pressed in input element while speaking", () => {
+      service = new SpeechService(() => true, () => 1);
+      service.speak("Hello");
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      utterance.onstart?.({} as Event);
+
+      const inputElement = document.createElement("input");
+      const event = new KeyboardEvent("keydown", { code: "Escape", key: "Escape" });
+      Object.defineProperty(event, "target", { value: inputElement });
+      const preventDefaultSpy = jest.spyOn(event, "preventDefault");
+
+      window.dispatchEvent(event);
+
+      expect(preventDefaultSpy).toHaveBeenCalled();
+      expect(mockSpeechSynthesis.cancel).toHaveBeenCalled();
+    });
+
+    it("stops speech when Escape is pressed in textarea element while speaking", () => {
+      service = new SpeechService(() => true, () => 1);
+      service.speak("Hello");
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      utterance.onstart?.({} as Event);
+
+      const textareaElement = document.createElement("textarea");
+      const event = new KeyboardEvent("keydown", { code: "Escape", key: "Escape" });
+      Object.defineProperty(event, "target", { value: textareaElement });
+      const preventDefaultSpy = jest.spyOn(event, "preventDefault");
+
+      window.dispatchEvent(event);
+
+      expect(preventDefaultSpy).toHaveBeenCalled();
+      expect(mockSpeechSynthesis.cancel).toHaveBeenCalled();
+    });
+
+    it("does not intercept Escape when not speaking", () => {
+      service = new SpeechService(() => true, () => 1);
+
+      const event = new KeyboardEvent("keydown", { code: "Escape", key: "Escape" });
+      Object.defineProperty(event, "target", { value: document.body });
+      const preventDefaultSpy = jest.spyOn(event, "preventDefault");
+
+      window.dispatchEvent(event);
+
+      expect(preventDefaultSpy).not.toHaveBeenCalled();
+    });
+
+    it("does not stop speech when other keys are pressed", () => {
+      service = new SpeechService(() => true, () => 1);
+      service.speak("Hello");
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      utterance.onstart?.({} as Event);
+
+      const event = new KeyboardEvent("keydown", { code: "Space", key: " " });
+      Object.defineProperty(event, "target", { value: document.body });
+      const preventDefaultSpy = jest.spyOn(event, "preventDefault");
+
+      window.dispatchEvent(event);
+
+      // Spacebar should not stop speech anymore - only Escape does
+      expect(preventDefaultSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("onSpeakingChange", () => {
+    it("calls callback when speaking state changes", () => {
+      service = new SpeechService(() => true, () => 1);
+      const callback = jest.fn();
+      service.onSpeakingChange(callback);
+
+      service.speak("Hello");
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      utterance.onstart?.({} as Event);
+
+      expect(callback).toHaveBeenCalledWith(true);
+
+      utterance.onend?.({} as Event);
+      expect(callback).toHaveBeenCalledWith(false);
+    });
+
+    it("returns unsubscribe function", () => {
+      service = new SpeechService(() => true, () => 1);
+      const callback = jest.fn();
+      const unsubscribe = service.onSpeakingChange(callback);
+
+      unsubscribe();
+
+      service.speak("Hello");
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      utterance.onstart?.({} as Event);
+
+      expect(callback).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("error handling", () => {
+    it("calls error callback when speech synthesis is not available", () => {
+      cleanupMockSpeechSynthesis();
+      const onError = jest.fn();
+      service = new SpeechService(() => true, () => 1, onError);
+      service.speak("Hello");
+
+      expect(onError).toHaveBeenCalledWith("Speech synthesis is not available in this browser.");
+    });
+
+    it("calls error callback on speech error (non-canceled)", () => {
+      const onError = jest.fn();
+      service = new SpeechService(() => true, () => 1, onError);
+      service.speak("Hello");
+
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      utterance.onerror?.({ error: "network" } as SpeechSynthesisErrorEvent);
+
+      expect(onError).toHaveBeenCalledWith("Speech synthesis error: network");
+    });
+
+    it("does not call error callback on canceled error", () => {
+      const onError = jest.fn();
+      service = new SpeechService(() => true, () => 1, onError);
+      service.speak("Hello");
+
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      utterance.onerror?.({ error: "canceled" } as SpeechSynthesisErrorEvent);
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it("does not call error callback on interrupted error", () => {
+      const onError = jest.fn();
+      service = new SpeechService(() => true, () => 1, onError);
+      service.speak("Hello");
+
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      utterance.onerror?.({ error: "interrupted" } as SpeechSynthesisErrorEvent);
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("dispose", () => {
+    it("stops speech and removes event listener", () => {
+      const removeEventListenerSpy = jest.spyOn(window, "removeEventListener");
+      service = new SpeechService(() => true, () => 1);
+      service.dispose();
+      expect(mockSpeechSynthesis.cancel).toHaveBeenCalled();
+      expect(removeEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
+      removeEventListenerSpy.mockRestore();
+    });
+
+    it("clears speaking change callbacks", () => {
+      service = new SpeechService(() => true, () => 1);
+      const callback = jest.fn();
+      service.onSpeakingChange(callback);
+
+      service.speak("Hello");
+      const utterance = mockSpeechSynthesis.speak.mock.calls[0][0];
+      utterance.onstart?.({} as Event);
+      expect(callback).toHaveBeenCalledWith(true);
+      callback.mockClear();
+
+      service.dispose();
+      callback.mockClear();
+
+      // callback should not be called since it was cleared
+      utterance.onstart?.({} as Event);
+      expect(callback).not.toHaveBeenCalled();
+    });
+  });
+});
+
+// Minimal speechSynthesis mock that fires onstart immediately and lets the test
+// drive onend to advance the queue.
+function installSpeechMock() {
+  const spoken: string[] = [];
+  let current: any = null;
+  (global as any).SpeechSynthesisUtterance = class {
+    text: string; rate = 1; onstart: any; onend: any; onerror: any;
+    constructor(t: string) { this.text = t; }
+  };
+  (window as any).speechSynthesis = {
+    speak: (u: any) => { spoken.push(u.text); current = u; u.onstart?.(); },
+    cancel: () => { current = null; },
+  };
+  return { spoken, end: () => current?.onend?.() };
+}
+
+describe("SpeechService.enqueue", () => {
+  it("speaks queued chunks in order, advancing only on onend (no cancel between)", () => {
+    const mock = installSpeechMock();
+    const svc = new SpeechService(() => true, () => 1);
+    svc.enqueue("one."); svc.enqueue("two.");
+    expect(mock.spoken).toEqual(["one."]); // second waits
+    mock.end();
+    expect(mock.spoken).toEqual(["one.", "two."]);
+    svc.dispose();
+  });
+
+  it("no-ops when read-aloud is disabled", () => {
+    const mock = installSpeechMock();
+    const svc = new SpeechService(() => false, () => 1);
+    svc.enqueue("hello.");
+    expect(mock.spoken).toEqual([]);
+    svc.dispose();
+  });
+
+  it("stopSpeech clears the queue so a queued chunk cannot leak after Escape", () => {
+    const mock = installSpeechMock();
+    const svc = new SpeechService(() => true, () => 1);
+    svc.enqueue("one."); svc.enqueue("two.");
+    svc.stopSpeech();
+    mock.end(); // onend from the cancelled utterance must not start "two."
+    expect(mock.spoken).toEqual(["one."]);
+    svc.dispose();
+  });
+
+  it("speak() discards queued chunks (interrupt clears the queue)", () => {
+    const mock = installSpeechMock();
+    const svc = new SpeechService(() => true, () => 1);
+    svc.enqueue("one."); svc.enqueue("two."); // "one." speaking, "two." queued
+    svc.speak("interrupt!");                   // interrupt clears the queue
+    mock.end();                                // onend must NOT start "two."
+    expect(mock.spoken).not.toContain("two.");
+    svc.dispose();
+  });
+
+  it("drains chunks enqueued during a speak() utterance (no stranding)", () => {
+    const mock = installSpeechMock();
+    const svc = new SpeechService(() => true, () => 1);
+    svc.speak("Processing.");        // legacy interrupt path (e.g. the loading announcement)
+    svc.enqueue("Sentence one.");    // streamed chunk enqueued while "Processing." is speaking
+    expect(mock.spoken).toEqual(["Processing."]); // sentence waits, does not start yet
+    mock.end();                      // "Processing." onend must drain the queue
+    expect(mock.spoken).toEqual(["Processing.", "Sentence one."]);
+    svc.dispose();
+  });
+
+  it("Escape suppresses the rest of the response until resumeSpeech", () => {
+    const mock = installSpeechMock();
+    const svc = new SpeechService(() => true, () => 1);
+    svc.enqueue("one.");
+    expect(mock.spoken).toEqual(["one."]);
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })); // stop + suppress
+    svc.enqueue("two.");             // suppressed → ignored
+    expect(mock.spoken).toEqual(["one."]);
+    svc.resumeSpeech();             // a new response clears suppression
+    svc.enqueue("three.");
+    expect(mock.spoken).toEqual(["one.", "three."]);
+    svc.dispose();
+  });
+
+  it("stopAndSuppress stops speech and suppresses the rest of the response (Stop-button parity with Escape)", () => {
+    const mock = installSpeechMock();
+    const svc = new SpeechService(() => true, () => 1);
+    svc.enqueue("one.");
+    expect(mock.spoken).toEqual(["one."]);
+    svc.stopAndSuppress();          // what the visible Stop button calls
+    svc.enqueue("two.");            // suppressed → must not resume on the next chunk
+    expect(mock.spoken).toEqual(["one."]);
+    svc.resumeSpeech();             // a new response lifts suppression
+    svc.enqueue("three.");
+    expect(mock.spoken).toEqual(["one.", "three."]);
+    svc.dispose();
+  });
+
+  it("speak() while read-aloud is off does not strand an in-flight utterance", () => {
+    const mock = installSpeechMock();
+    let enabled = true;
+    const svc = new SpeechService(() => enabled, () => 1);
+    svc.enqueue("one.");                 // begins speaking "one." (onstart → speaking true)
+    expect(svc.isSpeaking()).toBe(true);
+    enabled = false;
+    svc.speak("noop while off");         // read-aloud off: must not orphan the live utterance
+    mock.end();                          // "one." finishes → its onend must still flip speaking off
+    expect(svc.isSpeaking()).toBe(false);
+    svc.dispose();
+  });
+});

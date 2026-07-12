@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Builds
+dist/
+build/
+.svelte-kit/
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+playwright-report/
+test-results/
+.nyc_output/
+
+# Env & secrets (never commit)
+.env
+.env.*
+!.env.example
+**/env.local.json
+**/.granola-tokens.json
+
+# AWS / IaC local state
+.aws-sam/
+cdk.out/
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Editor / OS
+.DS_Store
+._*
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

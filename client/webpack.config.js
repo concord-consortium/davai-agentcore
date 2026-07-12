@@ -1,0 +1,218 @@
+'use strict';
+
+const webpack = require('webpack');
+const path = require('path');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const ESLintPlugin = require('eslint-webpack-plugin');
+const os = require('os');
+
+// These environment variables are provided to the built code via the EnvironmentPlugin below
+require('dotenv').config();
+
+// DEPLOY_PATH is set by the s3-deploy-action its value will be:
+// `branch/[branch-name]/` or `version/[tag-name]/`
+// See the following documentation for more detail:
+//   https://github.com/concord-consortium/s3-deploy-action/blob/main/README.md#top-branch-example
+// We default it to null, so the EnvironmentPlugin below will not complain if it isn't available in
+// the environment.
+const DEPLOY_PATH = process.env.DEPLOY_PATH ?? null;
+
+// Derive DAVAI_VERSION from DEPLOY_PATH to show it in the UI
+const DAVAI_VERSION = DEPLOY_PATH ? DEPLOY_PATH.replace(/\/$/, '').split('/').pop() : 'local-build';
+
+const baseHtmlPluginConfig = {
+  template: 'src/index.html',
+  favicon: 'src/public/favicon.ico',
+};
+
+function configHtmlPlugins(config) {
+  const { filename } = config;
+  const numFolders = (filename.match(/\//g) || []).length;
+  const rootPath = '../'.repeat(numFolders);
+  const plugins = [
+    new HtmlWebpackPlugin({
+      ...baseHtmlPluginConfig,
+      ...config,
+      publicPath: rootPath ? `${rootPath}` : ''
+    })
+  ];
+  if (DEPLOY_PATH) {
+    plugins.push(
+      new HtmlWebpackPlugin({
+        ...baseHtmlPluginConfig,
+        ...config,
+        filename: filename.replace('.html', '-top.html'),
+        publicPath: `${rootPath}${DEPLOY_PATH}`
+      })
+    );
+  }
+  return plugins;
+}
+
+module.exports = (env, argv) => {
+  const devMode = argv.mode !== 'production';
+
+  return {
+    context: __dirname, // to automatically find tsconfig.json
+    devServer: {
+      static: 'dist',
+      hot: true,
+      https: {
+        key: path.resolve(os.homedir(), '.localhost-ssl/localhost.key'),
+        cert: path.resolve(os.homedir(), '.localhost-ssl/localhost.pem'),
+      },
+      proxy: [
+        // Proxy anything not available locally to codap.concord.org (production CODAP,
+        // served at /app/). This makes it possible to load CODAP at
+        // https://localhost:8080/app/ and the plugin at https://localhost:8080/ so the
+        // plugin can be embedded in CODAP same-origin during development.
+        {
+          context: ['/'],
+          target: 'https://codap.concord.org',
+          secure: true,
+          changeOrigin: true,
+        }
+      ]
+    },
+    devtool: devMode ? 'eval-cheap-module-source-map' : 'source-map',
+    entry: {
+      'index': './src/index.tsx',
+      'sound-demo': './src/sound-demo/index.tsx',
+    },
+    mode: 'development',
+    output: {
+      path: path.resolve(__dirname, 'dist'),
+      filename: 'assets/index.[contenthash].js',
+    },
+    performance: { hints: false },
+    module: {
+      rules: [
+        {
+          test: /\.tsx?$/,
+          loader: 'ts-loader',
+        },
+        // This code coverage instrumentation should only be added when needed. It makes
+        // the code larger and slower
+        process.env.CODE_COVERAGE ? {
+          test: /\.[tj]sx?$/,
+          loader: '@jsdevtools/coverage-istanbul-loader',
+          options: { esModules: true },
+          enforce: 'post',
+          exclude: path.join(__dirname, 'node_modules'),
+        } : {},
+        {
+          test: /\.(sa|sc|le|c)ss$/i,
+          use: [
+            devMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+            {
+              loader: 'css-loader',
+              options: {
+                esModule: false,
+                modules: {
+                  // required for :import from scss files
+                  // cf. https://github.com/webpack-contrib/css-loader#separating-interoperable-css-only-and-css-module-features
+                  mode: 'icss',
+                }
+              }
+            },
+            'postcss-loader',
+            'sass-loader',
+          ]
+        },
+        {
+          test: /\.(png|woff|woff2|eot|ttf|mp3)$/,
+          type: 'asset',
+        },
+        { // disable svgo optimization for files ending in .nosvgo.svg
+          test: /\.nosvgo\.svg$/i,
+          loader: '@svgr/webpack',
+          options: {
+            svgo: false,
+          }
+        },
+        {
+          test: /\.svg$/i,
+          exclude: /\.nosvgo\.svg$/i,
+          oneOf: [
+            {
+              // Do not apply SVGR import in CSS files.
+              issuer: /\.(css|scss|less)$/,
+              type: 'asset',
+            },
+            {
+              issuer: /\.tsx?$/,
+              loader: '@svgr/webpack',
+              options: {
+                svgoConfig: {
+                  plugins: [
+                    {
+                      // cf. https://github.com/svg/svgo/releases/tag/v2.4.0
+                      name: 'preset-default',
+                      params: {
+                        overrides: {
+                          // don't minify "id"s (i.e. turn randomly-generated unique ids into "a", "b", ...)
+                          // https://github.com/svg/svgo/blob/master/plugins/cleanupIds.js
+                          cleanupIds: { minify: false },
+                          // leave <line>s, <rect>s and <circle>s alone
+                          // https://github.com/svg/svgo/blob/master/plugins/convertShapeToPath.js
+                          convertShapeToPath: false,
+                          // leave "stroke"s and "fill"s alone
+                          // https://github.com/svg/svgo/blob/master/plugins/removeUnknownsAndDefaults.js
+                          removeUnknownsAndDefaults: { defaultAttrs: false },
+                          // leave viewBox alone
+                          removeViewBox: false
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    resolve: {
+      extensions: [ '.ts', '.tsx', '.js' ],
+    },
+    stats: {
+      // suppress "export not found" warnings about re-exported types
+      warningsFilter: /export .* was not found in/,
+    },
+    plugins: [
+      new ESLintPlugin({
+        extensions: ['ts', 'tsx', 'js', 'jsx'],
+        // Always lint fresh. The result cache is keyed on file content, but the
+        // import/no-extraneous-dependencies rule depends on package.json — so after
+        // adding a dependency, an unchanged importing file would keep showing a stale
+        // "should be listed in dependencies" warning in the dev overlay. Linting this
+        // small codebase each rebuild is cheap and avoids that recurring false alarm.
+        cache: false,
+      }),
+      new MiniCssExtractPlugin({
+        filename: devMode ? 'assets/[name].css' : 'assets/[name].[contenthash].css',
+      }),
+      ...configHtmlPlugins({
+        filename: 'index.html',
+        chunks: ['index'],
+      }),
+      ...configHtmlPlugins({
+        filename: 'sound-demo/index.html',
+        chunks: ['sound-demo'],
+      }),
+      new CleanWebpackPlugin(),
+      // Provide these environment variables to the built code
+      // See https://webpack.js.org/plugins/environment-plugin/ for documentation
+      new webpack.EnvironmentPlugin({
+        DEPLOY_PATH,                           // not necessary but can't hurt
+        DAVAI_VERSION,                         // derived from DEPLOY_PATH
+        AUTH_TOKEN: undefined,                 // required env davai server token
+        LANGCHAIN_SERVER_URL: undefined,       // required env langchain server url
+        REACT_APP_OPENAI_BASE_URL: null,       // optional openai url
+        REACT_APP_OPENAI_API_KEY: null,        // optional openai api
+      }),
+    ]
+  };
+};
