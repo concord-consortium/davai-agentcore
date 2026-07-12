@@ -22,6 +22,19 @@ mean-of-means 3679 ms vs poll 3035 ms): the 2–4 s LLM generation dominates, an
 saving is a small fraction of it. The local reproduction also **understates** the old stack (see caveat),
 so it cannot produce the infra-inclusive headline %.
 
+## 3. Deployed new-stack latency (AgentCore, real OpenAI, N=8)
+Measured through the AWS `invoke-agent-runtime` API against the live runtime
+(`done-loop/latency/agentcore-bench.mjs`):
+
+| scenario | p50 | mean | min–max |
+|---|---|---|---|
+| plain turn | 1662 ms | 1624 ms | 1191–2017 |
+| tool round-trip (2 invokes) | 8098 ms | 5888 ms | 3015–8577 |
+
+AgentCore adds minimal overhead and shows **no cold-start penalty** (runtime stays warm; plain-turn
+latency is tight and LLM-bound). This is the new-stack side of the comparison; the old-stack (deployed
+baseline) side is still needed to compute the headline %.
+
 ## What this means for the ≥40% / ≥50% bar
 - The transport win is **real and quantified** (~490 ms/turn, ~970 ms/tool-call), but as a *fraction* of a
   full turn it only reaches the ≥40% bar when the old stack's **infrastructure overhead** is included and/or
