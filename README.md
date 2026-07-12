@@ -43,9 +43,11 @@ davai-agentcore/
       a default-off `useWebSocket` flag — poll path intact (**18/18 client tests pass**), typecheck clean.
       _Real browser E2E of the WS path runs in the done-loop (needs the deployed stack). Set `WS_SERVER_URL` + flip
       `setUseWebSocket(true)`._
-- [~] **P4 — Deploy + prove:** IaC groundwork authored — `infra/policies/` least-privilege IAM (execution
-      trust+permissions **without `bedrock:InvokeModel`**, deploy-caller) all valid JSON; deploy runbook.
-      _Deploy + done-loop run pend AWS creds + `aws`/`agentcore` CLI install._
+- [~] **P4 — Deploy + prove:** **DEPLOYED & LIVE** to AgentCore (acct 816253370536, us-east-1) — runtime
+      `davai_agentcore-0c9quSDd49`. Verified through `invoke-agent-runtime` (real OpenAI): plain turn, **multi-turn
+      in-VM memory on the deployed microVM**, and the tool-calling `requires_action` path. All resources namespaced
+      + tagged; teardown in `infra/DEPLOYED.md`. _Remaining: latency comparison vs a baseline + the Playwright
+      done-loop parity run._
 - [ ] **P5 — Report + reconcile** plan back to `davai-plugin`.
 
 ## Provenance
