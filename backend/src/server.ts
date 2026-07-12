@@ -9,6 +9,8 @@
 import "dotenv/config";
 import http from "node:http";
 import { runTurn } from "./runner.js";
+import { validateTurn } from "./validate.js";
+import { attachWebSocket } from "./ws.js";
 import type { TurnInput } from "./types.js";
 
 const PORT = Number(process.env.PORT || 8080);
@@ -58,20 +60,6 @@ function authorized(req: http.IncomingMessage): boolean {
   return header === AUTH_SECRET || header === `Bearer ${AUTH_SECRET}`;
 }
 
-function validate(body: any): string | null {
-  if (!body || typeof body !== "object") return "body must be a JSON object";
-  if (typeof body.llmId !== "string") return "llmId (string) is required";
-  if (typeof body.threadId !== "string") return "threadId (string) is required";
-  if (body.kind === "tool") {
-    if (!body.message || typeof body.message.tool_call_id !== "string") {
-      return "tool turn requires message.tool_call_id";
-    }
-  } else if (typeof body.message !== "string") {
-    return "message (string) is required";
-  }
-  return null;
-}
-
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === "GET" && req.url === "/ping") {
@@ -88,7 +76,7 @@ const server = http.createServer(async (req, res) => {
         return send(res, 400, { error: (e as Error).message });
       }
 
-      const invalid = validate(body);
+      const invalid = validateTurn(body);
       if (invalid) return send(res, 400, { error: invalid });
 
       try {
@@ -107,6 +95,9 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// WebSocket transport (P3): streams tokens + collapses the client tool round-trip.
+attachWebSocket(server);
+
 server.listen(PORT, HOST, () => {
-  console.log(`davai-agentcore backend listening on http://${HOST}:${PORT}  (/ping, /invocations)`);
+  console.log(`davai-agentcore backend listening on http://${HOST}:${PORT}  (/ping, /invocations, ws://.../ws)`);
 });

@@ -29,11 +29,14 @@ davai-agentcore/
 
 - [x] **P0 — Scaffold:** repo + charter + research briefs; client forked; old backend + Playwright harness lifted.
       _Open item: AWS CLI / `gh` / AgentCore toolkit + dev-account credentials are **not yet installed/available** on this machine — see `docs/design.md` § Access._
-- [ ] **P1 — Baseline:** confirm deployed current stack; build interaction suite; measure old-stack latency.
+- [~] **P1 — Baseline:** interaction suite **drafted** for review (`done-loop/suite/`, 12 interactions,
+      modify+describe). _Baseline latency measurement pends AWS creds + the deployed old stack + a provider key._
 - [~] **P2 — Backend container:** LangGraph-JS agent re-hosted (only checkpointer swapped: Postgres→in-VM
       `MemorySaver`); `/invocations`+`/ping` on 8080; ARM64 image builds (325 MB) + runs; `/ping` green;
       pipeline runs end-to-end to the LLM boundary. _Live parity turn pends a provider API key._
-- [ ] **P3 — WebSocket:** `/ws` + forked-client WS transport; mid-turn tool round-trips; session mapping; idle re-seed.
+- [~] **P3 — WebSocket:** backend `/ws` done — token streaming + **mid-turn tool round-trip over one
+      socket** (verified via `npm run test:ws`, fake-agent mode). _Client half (poll→WS transport, session
+      mapping, idle re-seed) still to build; verifiable end-to-end only with a provider key + the harness._
 - [ ] **P4 — Deploy + prove:** deploy to dev; run done-loop; hit the latency bar.
 - [ ] **P5 — Report + reconcile** plan back to `davai-plugin`.
 

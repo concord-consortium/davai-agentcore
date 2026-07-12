@@ -43,6 +43,12 @@ export interface RunTurnOpts {
  * tool-call payload, with any pre-tool text attached via withAccumulatedResponse.
  */
 export async function runTurn(input: TurnInput, opts: RunTurnOpts = {}): Promise<any> {
+  // Transport-testing shortcut (off by default). See fake-agent.ts.
+  if (process.env.DAVAI_FAKE_AGENT === "1") {
+    const { fakeTurn } = await import("./fake-agent.js");
+    return fakeTurn(input, opts);
+  }
+
   const onToken = opts.onToken;
   // Always pass a concrete AbortSignal — LangGraph/checkpointer paths read
   // config.signal.aborted, so an undefined signal throws.
