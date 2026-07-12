@@ -35,10 +35,12 @@ davai-agentcore/
       `MemorySaver`); `/invocations`+`/ping`; ARM64 image (325 MB). **Live parity proven with real OpenAI:**
       plain turn, **multi-turn in-VM memory** (turn 2 recalled turn 1 with no Postgres), and the **tool-calling
       `requires_action` path** (real `create_request` graph creation).
-- [~] **P3 — WebSocket:** backend `/ws` **proven live end-to-end with real OpenAI** — token streaming + full
-      **tool round-trip over one socket** (`npm run test:ws:live` PASS), plus fake-mode smoke + `seed`/re-seed
-      (`npm run test:ws`). Client `ws-transport.ts` — **8 unit tests PASS**. _Remaining: wire the transport into
-      the client `handleMessageSubmit` (default-off flag); full browser run pending._
+- [x] **P3 — WebSocket:** backend `/ws` **proven live end-to-end with real OpenAI** (streaming + tool
+      round-trip over one socket, `npm run test:ws:live`; fake-mode smoke + `seed`/re-seed, `npm run test:ws`).
+      Client `ws-transport.ts` (8 unit tests) **wired into `handleMessageSubmit` + `sendToolOutputToLlm`** behind
+      a default-off `useWebSocket` flag — poll path intact (**18/18 client tests pass**), typecheck clean.
+      _Real browser E2E of the WS path runs in the done-loop (needs the deployed stack). Set `WS_SERVER_URL` + flip
+      `setUseWebSocket(true)`._
 - [~] **P4 — Deploy + prove:** IaC groundwork authored — `infra/policies/` least-privilege IAM (execution
       trust+permissions **without `bedrock:InvokeModel`**, deploy-caller) all valid JSON; deploy runbook.
       _Deploy + done-loop run pend AWS creds + `aws`/`agentcore` CLI install._
