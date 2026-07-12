@@ -18,6 +18,33 @@ const HOST = "0.0.0.0";
 const MAX_BODY_BYTES = 100 * 1024 * 1024; // AgentCore payload cap is 100 MB
 const AUTH_SECRET = process.env.DAVAI_API_SECRET; // optional shared bearer (parity with old server)
 
+// OLD-transport reproduction (DAVAI_OLD_MODE=1): the pre-AgentCore client-visible
+// behavior — POST /message returns 202 + a messageId, the client polls /status until
+// completed, and a tool call is a SECOND queued job. Same LangGraph agent. Used only
+// by the done-loop to measure the poll/queue overhead this project removes. (It uses
+// the in-VM checkpointer, so it EXCLUDES the old stack's Postgres serialization — the
+// real old-vs-new gap is therefore at least this large.)
+const OLD_MODE = process.env.DAVAI_OLD_MODE === "1";
+const oldJobs = new Map<string, { status: string; output: any }>();
+let oldJobSeq = 0;
+
+async function processOldJob(messageId: string, input: any) {
+  const job = oldJobs.get(messageId)!;
+  try {
+    const output = await runTurn(input, {
+      onToken: (text: string) => {
+        job.status = "streaming";
+        job.output = { response: text };
+      },
+    });
+    job.status = "completed";
+    job.output = output;
+  } catch (e) {
+    job.status = "error";
+    job.output = { error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 function send(res: http.ServerResponse, status: number, body: unknown) {
   const json = JSON.stringify(body);
   res.writeHead(status, {
@@ -62,8 +89,33 @@ function authorized(req: http.IncomingMessage): boolean {
 
 const server = http.createServer(async (req, res) => {
   try {
-    if (req.method === "GET" && req.url === "/ping") {
+    if (req.method === "GET" && (req.url === "/ping" || req.url?.startsWith("/ping?"))) {
       return send(res, 200, { status: "Healthy" });
+    }
+
+    // OLD-transport routes (poll/queue), used only when DAVAI_OLD_MODE=1.
+    if (OLD_MODE) {
+      const u = new URL(req.url || "/", "http://localhost");
+      const p = u.pathname;
+      if (req.method === "POST" && (p === "/default/davaiServer/message" || p === "/default/davaiServer/tool")) {
+        if (!authorized(req)) return send(res, 401, { error: "unauthorized" });
+        let body: any;
+        try { body = await readJsonBody(req); } catch (e) { return send(res, 400, { error: (e as Error).message }); }
+        const isTool = p.endsWith("/tool");
+        const invalid = validateTurn(isTool ? { ...body, kind: "tool" } : body);
+        if (invalid) return send(res, 400, { error: invalid });
+        const messageId = `${isTool ? "t" : "m"}${Date.now()}-${oldJobSeq++}`;
+        oldJobs.set(messageId, { status: "queued", output: null });
+        void processOldJob(messageId, isTool ? { ...body, kind: "tool" } : body);
+        return send(res, 202, { messageId, status: "queued" });
+      }
+      if (req.method === "GET" && p === "/default/davaiServer/status") {
+        const messageId = u.searchParams.get("messageId") || "";
+        const job = oldJobs.get(messageId);
+        if (!job) return send(res, 404, { error: "job not found" });
+        return send(res, 200, { status: job.status, output: job.output });
+      }
+      return send(res, 404, { error: "not found" });
     }
 
     if (req.method === "POST" && req.url === "/invocations") {
@@ -96,8 +148,12 @@ const server = http.createServer(async (req, res) => {
 });
 
 // WebSocket transport (P3): streams tokens + collapses the client tool round-trip.
-attachWebSocket(server);
+// Not attached in OLD_MODE (that server only speaks the legacy poll/queue routes).
+if (!OLD_MODE) attachWebSocket(server);
 
 server.listen(PORT, HOST, () => {
-  console.log(`davai-agentcore backend listening on http://${HOST}:${PORT}  (/ping, /invocations, ws://.../ws)`);
+  const routes = OLD_MODE
+    ? "OLD-MODE: /ping, POST /default/davaiServer/{message,tool}, GET /status"
+    : "/ping, /invocations, ws://.../ws";
+  console.log(`davai-agentcore backend listening on http://${HOST}:${PORT}  (${routes})`);
 });
