@@ -28,7 +28,8 @@ davai-agentcore/
 ## Status (phase tracker)
 
 - [x] **P0 — Scaffold:** repo + charter + research briefs; client forked; old backend + Playwright harness lifted.
-      _Open item: AWS CLI / `gh` / AgentCore toolkit + dev-account credentials are **not yet installed/available** on this machine — see `docs/design.md` § Access._
+      **Toolchain installed & ready:** `aws` CLI 2.35 (has `bedrock-agentcore-control`), Docker 28.4 (ARM64),
+      `agentcore` CLI 0.24 (npm `@aws/agentcore`), node/git. _Only remaining P0 input: davai dev-account credentials._
 - [~] **P1 — Baseline:** interaction suite drafted (`done-loop/suite/`, 12 interactions). **Latency runner
       built** (`done-loop/latency/run.mjs`, drivers `ws`/`invocations`/`sam-poll`) + **new-stack WS preview run**
       with real OpenAI. _Old-vs-new comparison pends the deployed `sam-server` baseline URL + token._
