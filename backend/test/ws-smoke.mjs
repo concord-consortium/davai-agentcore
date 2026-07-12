@@ -29,6 +29,13 @@ function run() {
         return;
       }
       if (f.type === "error") return fail("error frame: " + f.error);
+      if (f.type === "seeded") {
+        if (phase !== "seed") return fail("unexpected seeded in phase " + phase);
+        if (f.count !== 2) return fail("seed count wrong: " + f.count);
+        clearTimeout(timer);
+        ws.close();
+        return resolve({ sawTokenPlain, sawTokenTool, toolCallId, seeded: f.count });
+      }
       if (f.type !== "result") return;
 
       if (phase === "plain") {
@@ -46,9 +53,17 @@ function run() {
       } else if (phase === "toolresult") {
         if (!/tool result: \[\]/.test(f.output?.response || ""))
           return fail("tool final wrong: " + JSON.stringify(f.output));
-        clearTimeout(timer);
-        ws.close();
-        resolve({ sawTokenPlain, sawTokenTool, toolCallId });
+        // Idle re-seed: inject a transcript into the thread (server updateState, no LLM).
+        phase = "seed";
+        ws.send(JSON.stringify({
+          type: "seed",
+          threadId,
+          llmId,
+          messages: [
+            { role: "user", content: "a" },
+            { role: "assistant", content: "b" },
+          ],
+        }));
       }
     });
   });
@@ -60,7 +75,11 @@ run()
       console.error("FAIL: missing token frames", r);
       process.exit(1);
     }
-    console.log("WS smoke PASS: streaming + tool round-trip over one socket", r);
+    if (r.seeded !== 2) {
+      console.error("FAIL: seed not confirmed", r);
+      process.exit(1);
+    }
+    console.log("WS smoke PASS: streaming + tool round-trip + idle re-seed over one socket", r);
     process.exit(0);
   })
   .catch((e) => {

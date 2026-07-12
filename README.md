@@ -34,9 +34,10 @@ davai-agentcore/
 - [~] **P2 — Backend container:** LangGraph-JS agent re-hosted (only checkpointer swapped: Postgres→in-VM
       `MemorySaver`); `/invocations`+`/ping` on 8080; ARM64 image builds (325 MB) + runs; `/ping` green;
       pipeline runs end-to-end to the LLM boundary. _Live parity turn pends a provider API key._
-- [~] **P3 — WebSocket:** backend `/ws` done — token streaming + **mid-turn tool round-trip over one
-      socket** (verified via `npm run test:ws`, fake-agent mode). _Client half (poll→WS transport, session
-      mapping, idle re-seed) still to build; verifiable end-to-end only with a provider key + the harness._
+- [~] **P3 — WebSocket:** backend `/ws` (token streaming + mid-turn tool round-trip + `seed`/re-seed via
+      `updateState`) — `npm run test:ws` PASS. Client `ws-transport.ts` (session-id≥33, socket reuse, tool
+      round-trip, idle re-seed) — **8 unit tests PASS**. _Remaining: wire the transport into the client's
+      `handleMessageSubmit` (small, default-off flag); best verified with a provider key + the harness._
 - [ ] **P4 — Deploy + prove:** deploy to dev; run done-loop; hit the latency bar.
 - [ ] **P5 — Report + reconcile** plan back to `davai-plugin`.
 
