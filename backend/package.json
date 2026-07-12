@@ -8,7 +8,8 @@
     "start": "node dist/server.cjs",
     "dev": "tsx watch src/server.ts",
     "typecheck": "tsc --noEmit",
-    "test:ws": "node scripts/run-ws-smoke.mjs"
+    "test:ws": "node scripts/run-ws-smoke.mjs",
+    "test:ws:live": "node scripts/run-ws-live.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.857.0",

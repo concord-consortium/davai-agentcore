@@ -31,13 +31,14 @@ davai-agentcore/
       _Open item: AWS CLI / `gh` / AgentCore toolkit + dev-account credentials are **not yet installed/available** on this machine — see `docs/design.md` § Access._
 - [~] **P1 — Baseline:** interaction suite **drafted** for review (`done-loop/suite/`, 12 interactions,
       modify+describe). _Baseline latency measurement pends AWS creds + the deployed old stack + a provider key._
-- [~] **P2 — Backend container:** LangGraph-JS agent re-hosted (only checkpointer swapped: Postgres→in-VM
-      `MemorySaver`); `/invocations`+`/ping` on 8080; ARM64 image builds (325 MB) + runs; `/ping` green;
-      pipeline runs end-to-end to the LLM boundary. _Live parity turn pends a provider API key._
-- [~] **P3 — WebSocket:** backend `/ws` (token streaming + mid-turn tool round-trip + `seed`/re-seed via
-      `updateState`) — `npm run test:ws` PASS. Client `ws-transport.ts` (session-id≥33, socket reuse, tool
-      round-trip, idle re-seed) — **8 unit tests PASS**. _Remaining: wire the transport into the client's
-      `handleMessageSubmit` (small, default-off flag); best verified with a provider key + the harness._
+- [x] **P2 — Backend container:** LangGraph-JS agent re-hosted (only checkpointer swapped: Postgres→in-VM
+      `MemorySaver`); `/invocations`+`/ping`; ARM64 image (325 MB). **Live parity proven with real OpenAI:**
+      plain turn, **multi-turn in-VM memory** (turn 2 recalled turn 1 with no Postgres), and the **tool-calling
+      `requires_action` path** (real `create_request` graph creation).
+- [~] **P3 — WebSocket:** backend `/ws` **proven live end-to-end with real OpenAI** — token streaming + full
+      **tool round-trip over one socket** (`npm run test:ws:live` PASS), plus fake-mode smoke + `seed`/re-seed
+      (`npm run test:ws`). Client `ws-transport.ts` — **8 unit tests PASS**. _Remaining: wire the transport into
+      the client `handleMessageSubmit` (default-off flag); full browser run pending._
 - [~] **P4 — Deploy + prove:** IaC groundwork authored — `infra/policies/` least-privilege IAM (execution
       trust+permissions **without `bedrock:InvokeModel`**, deploy-caller) all valid JSON; deploy runbook.
       _Deploy + done-loop run pend AWS creds + `aws`/`agentcore` CLI install._
