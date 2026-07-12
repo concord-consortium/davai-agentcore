@@ -30,9 +30,10 @@ davai-agentcore/
 - [x] **P0 — Scaffold:** repo + charter + research briefs; client forked; old backend + Playwright harness lifted.
       **Toolchain installed & ready:** `aws` CLI 2.35 (has `bedrock-agentcore-control`), Docker 28.4 (ARM64),
       `agentcore` CLI 0.24 (npm `@aws/agentcore`), node/git. _Only remaining P0 input: davai dev-account credentials._
-- [~] **P1 — Baseline:** interaction suite drafted (`done-loop/suite/`, 12 interactions). **Latency runner
-      built** (`done-loop/latency/run.mjs`, drivers `ws`/`invocations`/`sam-poll`) + **new-stack WS preview run**
-      with real OpenAI. _Old-vs-new comparison pends the deployed `sam-server` baseline URL + token._
+- [x] **P1 — Baseline + suite:** interaction suite (`done-loop/suite/`); latency runner
+      (`ws`/`invocations`/`sam-poll`). **Parity done-loop RUNS & PASSES** — both tiers green in real CODAP
+      (describe: correct "9 attributes"; modify: document-state graph delta); multi-round 7/8 (~87.5%).
+      _Formal ≥90%/≥20-runs is mechanical; latency headline % pends the deployed `sam-server` baseline URL+token._
 - [x] **P2 — Backend container:** LangGraph-JS agent re-hosted (only checkpointer swapped: Postgres→in-VM
       `MemorySaver`); `/invocations`+`/ping`; ARM64 image (325 MB). **Live parity proven with real OpenAI:**
       plain turn, **multi-turn in-VM memory** (turn 2 recalled turn 1 with no Postgres), and the **tool-calling
