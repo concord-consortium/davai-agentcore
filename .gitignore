@@ -45,3 +45,8 @@ done-loop/latency/results-*.json
 done-loop/harness/node_modules/
 done-loop/harness/test-results/
 done-loop/harness/playwright-report/
+
+# self-signed localhost dev certs (generate locally; see certificate/README-certs.md)
+done-loop/harness/playwright/certificate/localhost.key
+done-loop/harness/playwright/certificate/localhost.pem
+~/.localhost-ssl/
