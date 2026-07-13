@@ -87,3 +87,25 @@ single turn where the poll penalty is a larger fraction — clears easily (57%).
 **warm**; real first-use includes Lambda cold start (~1-3 s), which would enlarge the old times and the
 reduction; (b) NEW was local WS (no AWS network) — the deployed AgentCore WS would be marginally slower.
 The pure-transport win is independently confirmed (~490 ms/turn, ~970 ms/tool, 96% of transport overhead).
+
+### Multi-tool interaction (the "multi-turn with tool calls" scenario)
+A 3-tool-call interaction ("scatterplot… then a dot plot… then a graph…"), same setup:
+
+| interaction | old p50 | new p50 | reduction |
+|---|---|---|---|
+| modify-multi (3 tool calls) | 14290 ms | 10910 ms | **24%** |
+
+Counter-intuitively **lower** than single-tool (39%). Reason: reduction% = transport_savings / total_time.
+transport savings grow ~1 s per round-trip, but total time grows ~1-2 s **per LLM call**, and each tool
+call is a full LLM turn. So more tool calls → more LLM time → transport savings a *smaller* fraction →
+lower %. The reduction is highest on the **shortest** interactions (describe, 57%).
+
+### Bottom line for metric #2
+- **Overall p50 ≥40%: MET (43%).**
+- **Tool-calling p50 ≥50%: NOT reachable.** single-tool 39%, multi-tool 24% — tool turns are
+  **LLM-call-dominated**, not transport-dominated, so the (real) transport savings can't reach 50% of the
+  total. The ≥50% bar implicitly assumed tool round-trips are transport-bound; measurement shows they're
+  LLM-bound. The pure-transport win is independently real (~490 ms/turn, ~970 ms/tool, 96% of overhead).
+- **Options for the user:** (a) adjust the tool-calling bar (e.g. ~40%, or reframe as "transport overhead
+  eliminated, LLM-bound beyond"); (b) accept the overall 43% + the transport-overhead evidence. The %s
+  were set as adjustable in the charter's open knobs.

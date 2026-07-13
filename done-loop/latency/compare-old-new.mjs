@@ -71,10 +71,12 @@ async function newTurn(kind, threadId, msg) {
   return dt;
 }
 
+const ONLY = arg("only", "");
 const INTERACTIONS = [
   { id: "describe", tool: false, msg: "How many attributes does this dataset have? Reply with just the number." },
   { id: "modify", tool: true, msg: "Make a scatterplot of Height versus Mass." },
-];
+  { id: "modify-multi", tool: true, msg: "Make a scatterplot of Height versus Mass, then make a separate dot plot of LifeSpan, then make a graph of Mass versus LifeSpan." },
+].filter(it => !ONLY || ONLY.split(",").includes(it.id));
 
 async function measure(label, turnFn) {
   const res = {};
@@ -105,7 +107,10 @@ for (const it of INTERACTIONS) {
   console.log(`  ${it.id.padEnd(9)}${it.tool ? " (tool)" : "       "}: old ${o.toFixed(0)}ms -> new ${n.toFixed(0)}ms = ${red(o, n).toFixed(0)}% reduction`);
 }
 const overallOld = mean(INTERACTIONS.map(it => oldR[it.id].p50)), overallNew = mean(INTERACTIONS.map(it => newR[it.id].p50));
-const toolOld = oldR.modify.p50, toolNew = newR.modify.p50;
 console.log(`\n  OVERALL p50 reduction: ${red(overallOld, overallNew).toFixed(0)}%   (bar: >=40%)`);
-console.log(`  TOOL-CALLING p50 reduction: ${red(toolOld, toolNew).toFixed(0)}%   (bar: >=50%)`);
+const toolIx = INTERACTIONS.filter(it => it.tool);
+if (toolIx.length) {
+  const toolOld = mean(toolIx.map(it => oldR[it.id].p50)), toolNew = mean(toolIx.map(it => newR[it.id].p50));
+  console.log(`  TOOL-CALLING p50 reduction: ${red(toolOld, toolNew).toFixed(0)}%   (bar: >=50%)`);
+}
 fs.writeFileSync(path.resolve(path.dirname(new URL(import.meta.url).pathname), "compare-results.json"), JSON.stringify({ runs: RUNS, old: oldR, new: newR }, null, 2));
