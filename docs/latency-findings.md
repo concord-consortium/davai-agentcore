@@ -62,3 +62,28 @@ node done-loop/latency/transport-bench.mjs --ws-url ws://127.0.0.1:A/ws --poll-u
 node done-loop/latency/run.mjs --transport ws       --url ws://127.0.0.1:A/ws --runs 20
 node done-loop/latency/run.mjs --transport sam-poll  --url http://127.0.0.1:B/ --runs 20
 ```
+
+## 4. HEADLINE old-vs-new comparison (metric #2) — measured
+Baseline captured from the live main-branch plugin's network requests (staging-a:
+`…execute-api.us-east-1.amazonaws.com/staging-a/`). Same model (gpt-4o-mini), same interactions,
+**N=20 each**. OLD = staging poll (SQS+Lambda+Postgres, real deployed, **warm**). NEW = WebSocket to the
+new backend (poll eliminated, tool round-trip collapsed; local, so excludes ~tens-of-ms same-region
+network — favorable to new). `done-loop/latency/compare-old-new.mjs`.
+
+| interaction | old p50 | new p50 | reduction |
+|---|---|---|---|
+| describe (non-tool) | 1252 ms | 539 ms | **57%** |
+| modify (tool-calling) | 4184 ms | 2562 ms | **39%** |
+| **overall p50** | | | **43%** — ✅ clears ≥40% |
+| **tool-calling p50** | | | **39%** — ❌ short of ≥50% |
+
+**Verdict:** the **overall ≥40% bar is MET (43%)**; the **tool-calling ≥50% bar is not (39%)**. Why the
+tool tier is lower: a tool turn is **two** LLM calls (message→requires_action, tool-result→final), so the
+LLM time dominates and dilutes the (real) transport savings; the WS collapse removes the old stack's poll
+cycles + second queued job (~1.6 s), but 2× the LLM time remains on both sides. The describe tier — a
+single turn where the poll penalty is a larger fraction — clears easily (57%).
+
+**Caveats that would move the tool-calling number toward the bar:** (a) the old stack was measured
+**warm**; real first-use includes Lambda cold start (~1-3 s), which would enlarge the old times and the
+reduction; (b) NEW was local WS (no AWS network) — the deployed AgentCore WS would be marginally slower.
+The pure-transport win is independently confirmed (~490 ms/turn, ~970 ms/tool, 96% of transport overhead).
