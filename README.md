@@ -44,11 +44,12 @@ davai-agentcore/
       a default-off `useWebSocket` flag — poll path intact (**18/18 client tests pass**), typecheck clean.
       _Real browser E2E of the WS path runs in the done-loop (needs the deployed stack). Set `WS_SERVER_URL` + flip
       `setUseWebSocket(true)`._
-- [~] **P4 — Deploy + prove:** **DEPLOYED & LIVE** to AgentCore (acct 816253370536, us-east-1) — runtime
-      `davai_agentcore-0c9quSDd49`. Verified through `invoke-agent-runtime` (real OpenAI): plain turn, **multi-turn
-      in-VM memory on the deployed microVM**, and the tool-calling `requires_action` path. All resources namespaced
-      + tagged; teardown in `infra/DEPLOYED.md`. _Remaining: latency comparison vs a baseline + the Playwright
-      done-loop parity run._
+- [x] **P4 — Deploy + prove:** **DEPLOYED & LIVE** to AgentCore (`davai_agentcore-0c9quSDd49`); parity done-loop
+      40/40; latency measured vs the real staging baseline (overall **43%**, tool-calling LLM-bound — accepted).
+      Teardown in `infra/DEPLOYED.md`.
+- [x] **P5 — Report + reconcile:** `docs/P5-final-report.md` — all 5 metrics satisfied (metric #2 accepted);
+      reconcile plan to `davai-plugin` incl. the one unbuilt production piece (SigV4 proxy / OAuth inbound for the
+      browser→deployed-runtime path).
 - [ ] **P5 — Report + reconcile** plan back to `davai-plugin`.
 
 ## Provenance
