@@ -1,5 +1,8 @@
 # DAVAI on AgentCore
 
+> 📊 **[Live report → concord-consortium.github.io/davai-agentcore](https://concord-consortium.github.io/davai-agentcore/)** — scorecard, latency chart, and reconcile plan.
+
+
 Re-host of the [DAVAI](https://github.com/concord-consortium/davai-plugin) CODAP-plugin backend on
 **AWS Bedrock AgentCore** — per-conversation microVM holding context in memory (no SQS / RDS Postgres /
 job table), with a **WebSocket** transport replacing the client's poll loop, to cut end-to-end latency
