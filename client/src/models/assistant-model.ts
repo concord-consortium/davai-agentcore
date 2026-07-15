@@ -31,6 +31,18 @@ const buildReseedMessages = (transcriptStore: any): SeedMessage[] => {
   return out;
 };
 
+// Runtime override for a hosted demo build: `?davaiWs=wss://host/ws` in the plugin
+// URL enables the WebSocket transport and points it at that backend, so one built,
+// GitHub Pages-hosted plugin can target any deployed backend without a rebuild.
+// Returns null when the param is absent (leaving the default poll path intact).
+const readWsParam = (): string | null => {
+  try {
+    return new URLSearchParams(window.location.search).get("davaiWs");
+  } catch {
+    return null;
+  }
+};
+
 // Post a timing debug entry (e.g. "Begin response time"/"Completed response time")
 // measured from the user-submit start. No-op if no start time is recorded.
 const timingDebug = (transcriptStore: any, label: string, startMs: number | null) => {
@@ -72,7 +84,7 @@ export const AssistantModel = types
     responseStartTime: null as number | null,
     effort: "" as string,
     // WebSocket transport (P3). Off by default: the poll path is unchanged unless enabled.
-    useWebSocket: false as boolean,
+    useWebSocket: (readWsParam() != null) as boolean,
     wsTransport: null as WsTransport | null,
     wsTransportThreadId: null as string | null,
   }))
@@ -284,7 +296,7 @@ export const AssistantModel = types
       if (!self.wsTransport || self.wsTransportThreadId !== self.threadId) {
         self.wsTransport?.close();
         self.wsTransport = new WsTransport({
-          url: process.env.WS_SERVER_URL || "ws://localhost:8080/ws",
+          url: readWsParam() || process.env.WS_SERVER_URL || "ws://localhost:8080/ws",
           authToken: process.env.AUTH_TOKEN || undefined,
           onReconnect: () => buildReseedMessages(self.transcriptStore),
         });
